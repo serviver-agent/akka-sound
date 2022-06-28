@@ -36,5 +36,5 @@ jobs:
         run: sbt compile
       - name: fmt
         run: sbt scalafmtCheck test:scalafmtCheck
-      - name: test:scalafmtCheck
+      - name: test
         run: sbt test
