@@ -1,5 +1,6 @@
 package com.serviveragent
 
-@main def main(): Unit = println(helloWorld)
+import akka.actor.typed.ActorSystem
 
-def helloWorld: String = "hello world!"
+@main def main(): Unit =
+  ActorSystem(actortest.Module.createModule(), "ActorSystem")
