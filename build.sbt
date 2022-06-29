@@ -16,3 +16,11 @@ lazy val root = (project in file("."))
     libraryDependencies += akkaActorTyped,
     libraryDependencies += scalaTest,
   )
+
+lazy val audioOutput = (project in file("./audioOutput"))
+  .settings(
+    name := "module-audio-output",
+    commonSettings,
+    libraryDependencies += akkaActorTyped,
+    libraryDependencies += scalaTest,
+  )
