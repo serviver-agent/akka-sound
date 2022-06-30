@@ -23,4 +23,4 @@ lazy val audioOutput = (project in file("./audioOutput"))
     commonSettings,
     libraryDependencies += akkaActorTyped,
     libraryDependencies += scalaTest,
-  )
+  ).dependsOn(root)

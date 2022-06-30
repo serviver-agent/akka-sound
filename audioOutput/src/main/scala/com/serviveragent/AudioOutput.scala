@@ -1,13 +1,11 @@
 package com.serviveragent.audiooutput
 
+import com.serviveragent.actortest.Signal
+
 import akka.actor.typed.{ActorRef, ActorSystem, Behavior, Scheduler}
 import akka.actor.typed.scaladsl.Behaviors
 
-import javax.sound.sampled.AudioFormat
-import javax.sound.sampled.AudioSystem
-import javax.sound.sampled.SourceDataLine
-
-final case class Signal(value: Double) extends AnyVal
+import javax.sound.sampled.{AudioFormat, AudioSystem, SourceDataLine}
 
 object AudioOutput:
   def apply(receiveBox: ActorRef[Signal]): Behavior[Signal] =
