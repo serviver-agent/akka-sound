@@ -8,6 +8,7 @@ object Module:
 
   def createModule(): Behavior[NotUsed] =
     Behaviors.setup { context =>
+      context.log.info("initializing the module...")
       val receiveBox = context.spawn(ReceiveBox(), "ReceiveBox")
       val amplifier = context.spawn(Amplifier(receiveBox), "Amplifier")
 
