@@ -15,4 +15,5 @@ lazy val root = (project in file("."))
     commonSettings,
     libraryDependencies += akkaActorTyped,
     libraryDependencies += scalaTest,
+    libraryDependencies += logback % Runtime
   )
