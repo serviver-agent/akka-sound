@@ -24,15 +24,16 @@ object SampleConverter:
   ): Unit =
     samples.zipWithIndex.foreach { case (sample, i) =>
       import sample.value
+      val offset = i * 3
       if value >= 1.0 then
         // 01111111 11111111 11111111
-        dest(i + 0) = 127; dest(i + 1) = -1; dest(i + 2) = -1
+        dest(offset + 0) = 127; dest(offset + 1) = -1; dest(offset + 2) = -1
       else if value < -1.0 then
         // 10000000 00000000 00000000
-        dest(i + 0) = -128; dest(i + 1) = 0; dest(i + 2) = 0
+        dest(offset + 0) = -128; dest(offset + 1) = 0; dest(offset + 2) = 0
       else
         val x = (value * 0x800000).toInt
-        dest(i + 0) = (x >>> 16).asInstanceOf[Byte]
-        dest(i + 1) = (x >>> 8).asInstanceOf[Byte]
-        dest(i + 2) = x.asInstanceOf[Byte]
+        dest(offset + 0) = (x >>> 16).asInstanceOf[Byte]
+        dest(offset + 1) = (x >>> 8).asInstanceOf[Byte]
+        dest(offset + 2) = x.asInstanceOf[Byte]
     }

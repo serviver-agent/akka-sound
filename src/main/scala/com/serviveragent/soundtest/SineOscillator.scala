@@ -11,7 +11,7 @@ class SineOscillator(
 ):
 
   def getAmp: Sample =
-    Sample(gain * Math.sin(2 * Math.PI * freq * t))
+    Sample(gain * Math.sin(2 * Math.PI * freq * t * fsInv))
 
   def next(): Unit = t += 1
 
