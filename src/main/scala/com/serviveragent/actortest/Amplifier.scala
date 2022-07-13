@@ -3,7 +3,7 @@ package com.serviveragent.actortest
 import akka.actor.typed.{ActorRef, Behavior}
 import akka.actor.typed.scaladsl.Behaviors
 
-object Amplifier:
+object Amplifier {
 
   def apply(receiveBox: ActorRef[Signal]): Behavior[Signal] =
     amplifier(receiveBox)
@@ -15,3 +15,4 @@ object Amplifier:
       receiveBox ! Signal(signal.value * 2)
       Behaviors.same
     }
+}

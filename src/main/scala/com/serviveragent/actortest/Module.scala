@@ -4,7 +4,7 @@ import akka.actor.typed.{Behavior, Terminated}
 import akka.actor.typed.scaladsl.Behaviors
 import akka.NotUsed
 
-object Module:
+object Module {
 
   def createModule(): Behavior[NotUsed] =
     Behaviors.setup { context =>
@@ -18,3 +18,4 @@ object Module:
         Behaviors.stopped
       }
     }
+}
