@@ -10,8 +10,7 @@ class SineOscillator(
     var t: Int
 ) {
 
-  def getAmp: Sample =
-    Sample(gain * Math.sin(2 * Math.PI * freq * t * fsInv))
+  def getAmp: Sample = gain * Math.sin(2 * Math.PI * freq * t * fsInv)
 
   def next(): Unit = t += 1
 

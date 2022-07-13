@@ -9,8 +9,7 @@ object SampleConverter {
       dest: Array[Byte]
   ): Unit = {
     var offset = 0
-    samples.foreach { sample =>
-      import sample.value
+    samples.foreach { value =>
       if (value >= 1.0) {
         // 01111111 11111111 11111111
         dest(offset) = 127; offset += 1
