@@ -1,15 +1,16 @@
 package com.serviveragent.soundtest
 
 import com.serviveragent.control.shutdown.{GracefulShutdown, GracefulShutdownDispatcher}
+import com.serviveragent.controller.{Controller, Subscriber}
 import org.slf4j.LoggerFactory
 
 import javax.sound.sampled.{AudioFormat, AudioSystem, SourceDataLine}
 import scala.concurrent.duration.*
 
 class AudioMain(
+    controller: Controller,
     protected val gracefulShutdownDispatcher: GracefulShutdownDispatcher
-) extends AudioControl
-    with GracefulShutdown {
+) extends GracefulShutdown {
 
   private val logger = LoggerFactory.getLogger(getClass)
 
@@ -23,7 +24,21 @@ class AudioMain(
     SineOscillator(440, 1.0, fs),
     LineOscillator(0.5)
   )
-  override def setAmp(value: Double): Unit = oscillator.setAmp(value, 0.05.seconds)
+
+  val ampReceiver: Thread = new Thread {
+    private val subscriber: Subscriber[Double] = controller.amp.getSubscriber
+    override def run(): Unit = {
+      try {
+        while (isRunning) {
+          val value = subscriber.blocking()
+          oscillator.setAmp(value, 0.05.seconds)
+        }
+      } catch {
+        case _: InterruptedException =>
+      }
+    }
+  }
+
   private val iterator: Iterator[Sample] = oscillator.iterator
 
   private val dest: Array[Byte] = new Array(3 * 1024)
@@ -34,7 +49,6 @@ class AudioMain(
     override def run(): Unit = {
       sourceDataLine.open()
       sourceDataLine.start()
-      isRunning = true
       while (isRunning) {
         val samples: Array[Sample] = iterator.take(1024).toArray
         SampleConverter.toBytePCM24signBigEndian(samples, dest)
@@ -48,11 +62,14 @@ class AudioMain(
 
   override def receiveStart(): Unit = {
     logger.debug("audio start")
+    isRunning = true
     thread.start()
+    ampReceiver.start()
   }
 
   override def receiveShutdown(): Unit = {
     logger.debug("audio shutdown")
+    ampReceiver.interrupt()
     isRunning = false
   }
 }

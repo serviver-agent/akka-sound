@@ -3,9 +3,11 @@ package com.serviveragent.guitest
 import java.awt.event.{WindowAdapter, WindowEvent}
 import javax.swing.*
 import com.serviveragent.control.shutdown.{GracefulShutdown, GracefulShutdownDispatcher}
+import com.serviveragent.controller.Controller
 import org.slf4j.LoggerFactory
 
 class GUIMain(
+    controller: Controller,
     protected val gracefulShutdownDispatcher: GracefulShutdownDispatcher
 ) extends GracefulShutdown {
 

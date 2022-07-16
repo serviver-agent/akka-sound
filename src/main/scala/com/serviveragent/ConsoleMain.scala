@@ -1,14 +1,14 @@
 package com.serviveragent
 
 import com.serviveragent.control.shutdown.{GracefulShutdown, GracefulShutdownDispatcher}
-import com.serviveragent.soundtest.{AudioControl, AudioMain}
+import com.serviveragent.controller.Controller
 import org.slf4j.LoggerFactory
 
 import java.io.{BufferedReader, IOException, InputStream, InputStreamReader}
 
 class ConsoleMain(
     inputStream: InputStream,
-    audioControl: AudioControl,
+    controller: Controller,
     protected val gracefulShutdownDispatcher: GracefulShutdownDispatcher
 ) extends GracefulShutdown {
 
@@ -27,7 +27,7 @@ class ConsoleMain(
             case "quit" => gracefulShutdownDispatcher.shutdownAll()
             case v if v.toDoubleOption.isDefined =>
               println(s"set amp: $v")
-              audioControl.setAmp(v.toDouble)
+              controller.amp.publish(v.toDouble)
             case _ => println(s"receive command: $command")
           }
         } else {
