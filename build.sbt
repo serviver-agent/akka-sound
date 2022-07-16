@@ -16,5 +16,6 @@ lazy val root = (project in file("."))
     libraryDependencies += akkaActorTyped,
     libraryDependencies += scalaTest,
     libraryDependencies += commonsMath,
-    libraryDependencies += logback % Runtime
+    libraryDependencies += logback % Runtime,
+    assembly / mainClass := Some("com.serviveragent.Main")
   )

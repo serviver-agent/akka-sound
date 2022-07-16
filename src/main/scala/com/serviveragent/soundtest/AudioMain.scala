@@ -1,8 +1,15 @@
 package com.serviveragent.soundtest
 
+import com.serviveragent.control.shutdown.{GracefulShutdown, GracefulShutdownDispatcher}
+import org.slf4j.LoggerFactory
+
 import javax.sound.sampled.{AudioFormat, AudioSystem, SourceDataLine}
 
-class AudioMain extends Runnable {
+class AudioMain(
+    protected val gracefulShutdownDispatcher: GracefulShutdownDispatcher
+) extends GracefulShutdown {
+
+  private val logger = LoggerFactory.getLogger(getClass)
 
   val fs = 44100
 
@@ -17,23 +24,31 @@ class AudioMain extends Runnable {
 
   var isRunning = false
 
-  def run(): Unit = {
-    println("heyheys")
-    sourceDataLine.open()
-    sourceDataLine.start()
-    isRunning = true
-    while (isRunning) {
-      val samples: Array[Sample] = sineIterator.take(1024).toArray
-      SampleConverter.toBytePCM24signBigEndian(samples, dest)
-      val bytes = dest.clone
-      sourceDataLine.write(bytes, 0, bytes.length)
+  private val thread = new Thread {
+    override def run(): Unit = {
+      sourceDataLine.open()
+      sourceDataLine.start()
+      isRunning = true
+      while (isRunning) {
+        val samples: Array[Sample] = sineIterator.take(1024).toArray
+        SampleConverter.toBytePCM24signBigEndian(samples, dest)
+        val bytes = dest.clone
+        sourceDataLine.write(bytes, 0, bytes.length)
+      }
+      sourceDataLine.stop()
+      sourceDataLine.close()
     }
-    sourceDataLine.stop()
-    sourceDataLine.close()
-    println("closed")
   }
 
-  def stop(): Unit = isRunning = false
+  override def receiveStart(): Unit = {
+    logger.debug("audio start")
+    thread.start()
+  }
+
+  override def receiveShutdown(): Unit = {
+    logger.debug("audio shutdown")
+    isRunning = false
+  }
 }
 
 object AudioMain
