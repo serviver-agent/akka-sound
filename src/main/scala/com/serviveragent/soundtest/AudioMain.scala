@@ -54,6 +54,7 @@ class AudioMain(
         SampleConverter.toBytePCM24signBigEndian(samples, dest)
         val bytes = dest.clone
         sourceDataLine.write(bytes, 0, bytes.length)
+        controller.generatedSound.publish(samples)
       }
       sourceDataLine.stop()
       sourceDataLine.close()

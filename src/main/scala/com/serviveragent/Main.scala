@@ -12,7 +12,7 @@ object Main extends App {
 
   val controller = new Controller
 
-  val audioMain = new AudioMain(controller, gracefulShutdownDispatcher)
+//  val audioMain = new AudioMain(controller, gracefulShutdownDispatcher)
   val guiMain = new GUIMain(controller, gracefulShutdownDispatcher)
   val consoleMain = new ConsoleMain(System.in, controller, gracefulShutdownDispatcher)
 
