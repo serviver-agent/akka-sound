@@ -25,13 +25,27 @@ class AudioMain(
     LineOscillator(0.25)
   )
 
-  val ampReceiver: Thread = new Thread {
+  val freqReceiver: Thread = new Thread {
     private val subscriber: Subscriber[Double] = controller.freq.getSubscriber
     override def run(): Unit = {
       try {
         while (isRunning) {
           val value = subscriber.blocking()
           oscillator.setFreq(value, 0.05.seconds)
+        }
+      } catch {
+        case _: InterruptedException =>
+      }
+    }
+  }
+
+  val ampReceiver: Thread = new Thread {
+    private val subscriber: Subscriber[Double] = controller.amp.getSubscriber
+    override def run(): Unit = {
+      try {
+        while (isRunning) {
+          val value = subscriber.blocking()
+          oscillator.setAmp(value, 0.05.seconds)
         }
       } catch {
         case _: InterruptedException =>
@@ -65,11 +79,13 @@ class AudioMain(
     logger.debug("audio start")
     isRunning = true
     thread.start()
+    freqReceiver.start()
     ampReceiver.start()
   }
 
   override def receiveShutdown(): Unit = {
     logger.debug("audio shutdown")
+    freqReceiver.interrupt()
     ampReceiver.interrupt()
     isRunning = false
   }

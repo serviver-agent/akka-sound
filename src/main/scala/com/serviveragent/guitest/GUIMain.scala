@@ -1,14 +1,14 @@
 package com.serviveragent.guitest
 
-import java.awt.event.{WindowAdapter, WindowEvent}
-import javax.swing.*
 import com.serviveragent.control.shutdown.{GracefulShutdown, GracefulShutdownDispatcher}
 import com.serviveragent.controller.{Controller, Subscriber}
 import org.apache.commons.math3.transform.{DftNormalization, FastFourierTransformer, TransformType}
 import org.slf4j.LoggerFactory
 
-import java.awt.{Color, Graphics, Graphics2D}
+import java.awt.event.{WindowAdapter, WindowEvent}
 import java.awt.image.BufferedImage
+import java.awt.{Color, Graphics, Graphics2D, Dimension}
+import javax.swing.*
 
 class GUIMain(
     controller: Controller,
@@ -54,7 +54,7 @@ class GUIMain(
 
   override def receiveStart(): Unit = SwingUtilities.invokeLater { () =>
     logger.debug("gui start")
-    frame.setSize(512, 374)
+    frame.setSize(512, 374 + 187)
     frame.setLocation(100, 100)
     frame.addWindowListener(new WindowAdapter() {
       override def windowClosing(e: WindowEvent): Unit = {
@@ -62,8 +62,16 @@ class GUIMain(
       }
     })
 
-    frame.add(label)
+    frame.add("North", label)
     label.setIcon(new ImageIcon(image))
+
+    val gainControlPanel = new GainControlPanel(0.0)
+    gainControlPanel.sliderAddChangeListener { _ =>
+      controller.amp.publish(gainControlPanel.getGain)
+    }
+
+    frame.add("South", gainControlPanel)
+
     frame.pack()
 
     isSignalReceiverRunning = true
