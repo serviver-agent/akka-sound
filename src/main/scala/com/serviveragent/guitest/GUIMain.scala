@@ -44,7 +44,7 @@ class GUIMain(
     val complex = fft.transform(data, TransformType.FORWARD)
     val realHalf: Array[Double] = complex.take(512).map(_.getReal)
     graphics.setColor(Color.BLACK)
-    graphics.fillRect(0, 0, 512, 314)
+    graphics.fillRect(0, 0, 512, 374)
     graphics.setColor(Color.BLUE)
     realHalf.zipWithIndex.foreach { (a, i) =>
       graphics.drawLine(i, 374 - (a / 8.0 * 374).toInt, i, 374) // 8で割っているのは適当である
