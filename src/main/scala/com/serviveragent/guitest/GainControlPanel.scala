@@ -1,6 +1,6 @@
 package com.serviveragent.guitest
 
-import java.awt.Dimension
+import java.awt.{Dimension, FlowLayout}
 import javax.swing.*
 import javax.swing.event.ChangeListener
 
@@ -10,22 +10,22 @@ class GainControlPanel(
 
   import GainControlPanel.*
 
-  val sliderInitial: Int = gainToSliderValue(initialGain)
-
+  private val sliderInitial: Int = gainToSliderValue(initialGain)
   private var gain: Double = sliderValueToGain(sliderInitial)
 
   private val label = new JLabel("gain")
-  val slider = new JSlider(SliderMin, SliderMax, sliderInitial)
+  private val slider = new JSlider(SliderMin, SliderMax, sliderInitial)
   private val sliderValueLabel = new JLabel(labelFormat(gain))
 
-  this.add("West", label)
-  this.add("Center", slider)
-  this.add("East", sliderValueLabel)
+  this.add(label)
+  this.add(slider)
+  this.add(sliderValueLabel)
 
-  this.setSize(new Dimension(512, 32))
-  label.setMaximumSize(new Dimension(64, 32))
-  slider.setPreferredSize(new Dimension(384, 32))
-  sliderValueLabel.setMaximumSize(new Dimension(64, 32))
+  // 指定通りのサイズになっていない。もう少し中央のスライダーを大きくしたいが、
+  // 適当に設定するとsliderValueLabelの文字数によってスライダーのサイズが変化してしまうので難しい。
+  label.setPreferredSize(new Dimension(64, 32))
+  slider.setMinimumSize(new Dimension(384, 32))
+  sliderValueLabel.setPreferredSize(new Dimension(64, 32))
 
   slider.addChangeListener(_ => {
     gain = sliderValueToGain(slider.getValue)
@@ -34,7 +34,9 @@ class GainControlPanel(
 
   def getGain: Double = gain
 
-  def sliderAddChangeListener(l: ChangeListener): Unit = slider.addChangeListener(l)
+  def addGainChangedCallback(fn: Double => Unit): Unit = slider.addChangeListener(_ => {
+    fn(gain)
+  })
 
 }
 
@@ -42,10 +44,10 @@ object GainControlPanel {
 
   import GainControlPanel.*
 
-  val SliderMin: Int = 0
-  val SliderMax: Int = 8192
-  val DivisionPointRatio: Double = 1.0 / 8
-  val DivisionPointDecibelValue: Double = -60.0
+  private val SliderMin: Int = 0
+  private val SliderMax: Int = 8192
+  private val DivisionPointRatio: Double = 1.0 / 8
+  private val DivisionPointDecibelValue: Double = -60.0
 
   /** スライダーの値 0 ~ 8192 を 音量 0.0 ~ 1.0 にマッピングする
     *
@@ -54,7 +56,7 @@ object GainControlPanel {
     *
     * より一般に、前半部分の比率を DivisionPointRatio, その点における値(dB)を DivisionPointDecibelValue としている。
     */
-  def sliderValueToGain(sliderValue: Int): Double = {
+  private def sliderValueToGain(sliderValue: Int): Double = {
     val ratio: Double = sliderValue.toDouble / SliderMax
     if (ratio <= DivisionPointRatio) {
       ratio / DivisionPointRatio * toLinear(DivisionPointDecibelValue)
@@ -63,7 +65,7 @@ object GainControlPanel {
     }
   }
 
-  def gainToSliderValue(gain: Double): Int = {
+  private def gainToSliderValue(gain: Double): Int = {
     val ratio: Double = if (gain <= toLinear(DivisionPointDecibelValue)) {
       gain * DivisionPointRatio / toLinear(DivisionPointDecibelValue)
     } else {
@@ -72,10 +74,10 @@ object GainControlPanel {
     (ratio * SliderMax).toInt
   }
 
-  def toDecibel(gain: Double): Double = 20 * Math.log10(gain)
-  def toLinear(decibel: Double): Double = Math.pow(10, decibel / 20)
+  private def toDecibel(gain: Double): Double = 20 * Math.log10(gain)
+  private def toLinear(decibel: Double): Double = Math.pow(10, decibel / 20)
 
-  def labelFormat(gain: Double): String = {
+  private def labelFormat(gain: Double): String = {
     val db = toDecibel(gain)
     if (db == Double.NegativeInfinity) "-Inf dB"
     else "%.2f dB".format(db)

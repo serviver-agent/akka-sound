@@ -66,9 +66,7 @@ class GUIMain(
     label.setIcon(new ImageIcon(image))
 
     val gainControlPanel = new GainControlPanel(0.5)
-    gainControlPanel.sliderAddChangeListener { _ =>
-      controller.amp.publish(gainControlPanel.getGain)
-    }
+    gainControlPanel.addGainChangedCallback(controller.amp.publish)
 
     frame.add("South", gainControlPanel)
 
