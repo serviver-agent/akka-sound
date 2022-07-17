@@ -21,17 +21,17 @@ class AudioMain(
     AudioSystem.getSourceDataLine(audioFormat)
 
   val oscillator: GainSineOscillator = new GainSineOscillator(
-    SineOscillator(440, 1.0, fs),
-    LineOscillator(0.5)
+    TriangleOscillator(LineOscillator(440), 1.0, fs),
+    LineOscillator(0.25)
   )
 
   val ampReceiver: Thread = new Thread {
-    private val subscriber: Subscriber[Double] = controller.amp.getSubscriber
+    private val subscriber: Subscriber[Double] = controller.freq.getSubscriber
     override def run(): Unit = {
       try {
         while (isRunning) {
           val value = subscriber.blocking()
-          oscillator.setAmp(value, 0.05.seconds)
+          oscillator.setFreq(value, 0.05.seconds)
         }
       } catch {
         case _: InterruptedException =>

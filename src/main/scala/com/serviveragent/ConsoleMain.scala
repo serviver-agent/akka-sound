@@ -26,8 +26,8 @@ class ConsoleMain(
           command match {
             case "quit" => gracefulShutdownDispatcher.shutdownAll()
             case v if v.toDoubleOption.isDefined =>
-              println(s"set amp: $v")
-              controller.amp.publish(v.toDouble)
+              println(s"set freq: $v")
+              controller.freq.publish(v.toDouble)
             case _ => println(s"receive command: $command")
           }
         } else {

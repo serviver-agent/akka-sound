@@ -3,10 +3,11 @@ package com.serviveragent.guitest
 import java.awt.event.{WindowAdapter, WindowEvent}
 import javax.swing.*
 import com.serviveragent.control.shutdown.{GracefulShutdown, GracefulShutdownDispatcher}
-import com.serviveragent.controller.Controller
+import com.serviveragent.controller.{Controller, Subscriber}
+import org.apache.commons.math3.transform.{DftNormalization, FastFourierTransformer, TransformType}
 import org.slf4j.LoggerFactory
 
-import java.awt.{Graphics, Graphics2D}
+import java.awt.{Color, Graphics, Graphics2D}
 import java.awt.image.BufferedImage
 
 class GUIMain(
@@ -16,56 +17,66 @@ class GUIMain(
 
   private val logger = LoggerFactory.getLogger(getClass)
 
-  val frame = new JFrame("Audio Spectrum")
+  private val frame = new JFrame("Audio Spectrum")
+  private val label = new JLabel
+  private val image = new BufferedImage(512, 374, BufferedImage.TYPE_INT_RGB)
+  private val graphics: Graphics2D = image.createGraphics
+
+  private var isSignalReceiverRunning = false
+
+  private val signalReceiver: Thread = new Thread {
+    private val subscriber: Subscriber[Array[Double]] = controller.generatedSound.getSubscriber
+    override def run(): Unit = {
+      try {
+        while (isSignalReceiverRunning) {
+          val value = subscriber.blocking()
+          fftPaint(value)
+        }
+      } catch {
+        case _: InterruptedException =>
+      }
+    }
+  }
+
+  private val fft = new FastFourierTransformer(DftNormalization.UNITARY)
+
+  private def fftPaint(data: Array[Double]): Unit = {
+    val complex = fft.transform(data, TransformType.FORWARD)
+    val realHalf: Array[Double] = complex.take(512).map(_.getReal)
+    graphics.setColor(Color.BLACK)
+    graphics.fillRect(0, 0, 512, 314)
+    graphics.setColor(Color.BLUE)
+    realHalf.zipWithIndex.foreach { (a, i) =>
+      graphics.drawLine(i, 374 - (a / 8.0 * 374).toInt, i, 374) // 8で割っているのは適当である
+    }
+    label.repaint()
+  }
 
   override def receiveStart(): Unit = SwingUtilities.invokeLater { () =>
     logger.debug("gui start")
     frame.setSize(512, 374)
-    frame.setLocation(200, 200)
+    frame.setLocation(100, 100)
     frame.addWindowListener(new WindowAdapter() {
       override def windowClosing(e: WindowEvent): Unit = {
         gracefulShutdownDispatcher.shutdownAll()
       }
     })
 
-    val label = new JLabel
     frame.add(label)
-    val image = new BufferedImage(512, 374, BufferedImage.TYPE_INT_RGB)
     label.setIcon(new ImageIcon(image))
-    frame.pack
-    drawGraphics(image.createGraphics)
-    label.repaint()
+    frame.pack()
+
+    isSignalReceiverRunning = true
+    signalReceiver.start()
 
     frame.setVisible(true)
   }
 
   override def receiveShutdown(): Unit = {
     logger.debug("gui shutdown")
+    isSignalReceiverRunning = false
     frame.setVisible(false)
     frame.dispose()
-  }
-
-  def drawGraphics(g: Graphics): Unit = {
-    import com.serviveragent.soundtest.Sample
-    import com.serviveragent.soundtest.SineOscillator
-    import org.apache.commons.math3.complex.Complex
-    import org.apache.commons.math3.transform.{TransformType, DftNormalization, FastFourierTransformer}
-
-    val fft = new FastFourierTransformer(DftNormalization.UNITARY)
-    val data: Array[Sample] = {
-      (SineOscillator(4400, 0.5, 44100).iterator zip SineOscillator(440, 0.5, 44100).iterator)
-        .map(_ + _)
-        .take(1024)
-        .toArray
-    }
-    val complex = fft.transform(data, TransformType.FORWARD)
-    val realHalf: Array[Double] = complex.take(512).map(_.getReal)
-    realHalf.zipWithIndex.foreach { (a, i) =>
-      g.drawLine(i, 374 - (a / 8.0 * 374).toInt, i, 374)
-    }
-//    complex.foreach(c => println(s"${c.getReal}, ${c.getImaginary}"))
-
-//    g.drawLine(0, 0, 1024, 768)
   }
 
 }
