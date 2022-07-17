@@ -10,7 +10,7 @@ class GainControlPanel(
 
   import GainControlPanel.*
 
-  val sliderInitial: Int = 0
+  val sliderInitial: Int = gainToSliderValue(initialGain)
 
   private var gain: Double = sliderValueToGain(sliderInitial)
 
@@ -61,6 +61,15 @@ object GainControlPanel {
     } else {
       toLinear((-DivisionPointDecibelValue) * (1 - DivisionPointRatio) * (ratio - 1))
     }
+  }
+
+  def gainToSliderValue(gain: Double): Int = {
+    val ratio: Double = if (gain <= toLinear(DivisionPointDecibelValue)) {
+      gain * DivisionPointRatio / toLinear(DivisionPointDecibelValue)
+    } else {
+      1 + (toDecibel(gain) / ((-DivisionPointDecibelValue) * (1 - DivisionPointRatio)))
+    }
+    (ratio * SliderMax).toInt
   }
 
   def toDecibel(gain: Double): Double = 20 * Math.log10(gain)
