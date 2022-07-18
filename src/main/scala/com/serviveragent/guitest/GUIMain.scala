@@ -7,7 +7,8 @@ import org.slf4j.LoggerFactory
 
 import java.awt.event.{WindowAdapter, WindowEvent}
 import java.awt.image.BufferedImage
-import java.awt.{Color, Graphics, Graphics2D, Dimension}
+import java.awt.{Color, Dimension, Graphics, Graphics2D, Image}
+import java.beans.{PropertyChangeEvent, PropertyChangeListener}
 import javax.swing.*
 
 class GUIMain(
@@ -19,29 +20,26 @@ class GUIMain(
 
   private val frame = new JFrame("Audio Spectrum")
   private val label = new JLabel
-  private val image = new BufferedImage(512, 374, BufferedImage.TYPE_INT_RGB)
+  private val image = new BufferedImage(2048, 1496, BufferedImage.TYPE_INT_RGB)
   private val graphics: Graphics2D = image.createGraphics
 
-  val signalSubscriber: Subscriber[Array[Double]] =
-    controller.generatedSound.getSubscriber(fftPaint)
+  val audioSpectrumWorker = new AudioSpectrumWorker(controller, fftPaint)
 
-  private val fft = new FastFourierTransformer(DftNormalization.UNITARY)
-
-  private def fftPaint(data: Array[Double]): Unit = {
-    val complex = fft.transform(data, TransformType.FORWARD)
-    val realHalf: Array[Double] = complex.take(512).map(_.getReal)
+  private def fftPaint(realHalf: Array[Double]): Unit = {
     graphics.setColor(Color.BLACK)
-    graphics.fillRect(0, 0, 512, 374)
+    graphics.fillRect(0, 0, 2048, 1496)
     graphics.setColor(Color.BLUE)
     realHalf.zipWithIndex.foreach { (a, i) =>
-      graphics.drawLine(i, 374 - (a / 8.0 * 374).toInt, i, 374) // 8で割っているのは適当である
+      // FIXME fftの結果の読み方がちゃんとしていない
+      graphics.drawLine(i, 748 - (a / 8.0 * 748).toInt, i, 1496) // 8で割っているのは適当である
     }
+    label.setIcon(new ImageIcon(image.getScaledInstance(1024, 748, Image.SCALE_FAST)))
     label.repaint()
   }
 
   override def receiveStart(): Unit = SwingUtilities.invokeLater { () =>
     logger.debug("gui start")
-    frame.setSize(512, 374 + 187)
+    frame.setSize(1024, 748 + 187)
     frame.setLocation(100, 100)
     frame.addWindowListener(new WindowAdapter() {
       override def windowClosing(e: WindowEvent): Unit = {
@@ -49,24 +47,22 @@ class GUIMain(
       }
     })
 
+    label.setIcon(new ImageIcon(image.getScaledInstance(1024, 748, Image.SCALE_FAST)))
     frame.add("North", label)
-    label.setIcon(new ImageIcon(image))
 
     val gainControlPanel = new GainControlPanel(0.5)
     gainControlPanel.addGainChangedCallback(controller.amp.publish)
 
     frame.add("South", gainControlPanel)
-
     frame.pack()
 
-    signalSubscriber.start()
-
+    audioSpectrumWorker.execute()
     frame.setVisible(true)
   }
 
   override def receiveShutdown(): Unit = {
     logger.debug("gui shutdown")
-    signalSubscriber.shutdown()
+    audioSpectrumWorker.shutdown()
     frame.setVisible(false)
     frame.dispose()
   }
