@@ -12,8 +12,8 @@ class PubSub[A](init: A*) {
     subscribers.iterator.asScala.foreach(_.putAndNotify(value))
   }
 
-  def getSubscriber(name: String, onReceive: A => Unit): Subscriber[A] = {
-    new Subscriber[A](init: _*)(name, onReceive).tap(subscribers.add)
+  def getSubscriber(onReceive: A => Unit): Subscriber[A] = {
+    new Subscriber[A](init: _*)(onReceive).tap(subscribers.add)
   }
 
 }

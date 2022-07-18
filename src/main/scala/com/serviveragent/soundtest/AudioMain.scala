@@ -26,7 +26,7 @@ class AudioMain(
   )
 
   val freqSubscriber: Subscriber[Double] =
-    controller.freq.getSubscriber("freqSubscriber", oscillator.setFreq(_, 0.05.seconds))
+    controller.freq.getSubscriber(oscillator.setFreq(_, 0.05.seconds))
   val ampSubscriber: Subscriber[Double] =
     controller.amp.getSubscriber(oscillator.setAmp(_, 0.05.seconds))
 

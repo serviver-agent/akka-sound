@@ -3,7 +3,7 @@ package com.serviveragent.controller
 import java.util.concurrent.ConcurrentLinkedQueue
 import scala.jdk.CollectionConverters.*
 
-class Subscriber[A](init: A*)(name: String, onReceive: A => Unit) extends Thread {
+class Subscriber[A](init: A*)(onReceive: A => Unit) extends Thread {
 
   private val queue = new ConcurrentLinkedQueue[A](init.asJava)
 

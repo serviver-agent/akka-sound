@@ -23,7 +23,7 @@ class GUIMain(
   private val graphics: Graphics2D = image.createGraphics
 
   val signalSubscriber: Subscriber[Array[Double]] =
-    controller.generatedSound.getSubscriber("signalSubscriber", fftPaint)
+    controller.generatedSound.getSubscriber(fftPaint)
 
   private val fft = new FastFourierTransformer(DftNormalization.UNITARY)
 
