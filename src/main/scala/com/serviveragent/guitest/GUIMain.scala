@@ -22,21 +22,8 @@ class GUIMain(
   private val image = new BufferedImage(512, 374, BufferedImage.TYPE_INT_RGB)
   private val graphics: Graphics2D = image.createGraphics
 
-  private var isSignalReceiverRunning = false
-
-  private val signalReceiver: Thread = new Thread {
-    private val subscriber: Subscriber[Array[Double]] = controller.generatedSound.getSubscriber
-    override def run(): Unit = {
-      try {
-        while (isSignalReceiverRunning) {
-          val value = subscriber.blocking()
-          fftPaint(value)
-        }
-      } catch {
-        case _: InterruptedException =>
-      }
-    }
-  }
+  val signalSubscriber: Subscriber[Array[Double]] =
+    controller.generatedSound.getSubscriber("signalSubscriber", fftPaint)
 
   private val fft = new FastFourierTransformer(DftNormalization.UNITARY)
 
@@ -72,15 +59,14 @@ class GUIMain(
 
     frame.pack()
 
-    isSignalReceiverRunning = true
-    signalReceiver.start()
+    signalSubscriber.start()
 
     frame.setVisible(true)
   }
 
   override def receiveShutdown(): Unit = {
     logger.debug("gui shutdown")
-    isSignalReceiverRunning = false
+    signalSubscriber.shutdown()
     frame.setVisible(false)
     frame.dispose()
   }
