@@ -25,13 +25,22 @@ class GUIMain(
 
   val audioSpectrumWorker = new AudioSpectrumWorker(controller, fftPaint)
 
-  private def fftPaint(realHalf: Array[Double]): Unit = {
+  private def fftPaint(absHalf: Array[Double]): Unit = {
     graphics.setColor(Color.BLACK)
     graphics.fillRect(0, 0, 2048, 1496)
     graphics.setColor(Color.BLUE)
-    realHalf.zipWithIndex.foreach { (a, i) =>
-      // FIXME fftの結果の読み方がちゃんとしていない
-      graphics.drawLine(i, 748 - (a / 8.0 * 748).toInt, i, 1496) // 8で割っているのは適当である
+    absHalf.zipWithIndex.foreach { (a, i) =>
+      val power = 20 * Math.log10(a) // 負の数(単位はdB)になる
+      // 20dB ~ -80dBまで表示する
+      val f = i / 2048.0 * 44100.0 / 2
+      val xpos = if (f <= 0.0) {
+        0
+      } else {
+        // Math.log10(22010) ==  4.34262004255
+        (Math.log10(f) / 4.34262004255 * 2048).toInt
+      }
+
+      graphics.drawLine(xpos, (1496 * (power - 20) / -100).toInt, xpos, 1496)
     }
     label.setIcon(new ImageIcon(image.getScaledInstance(1024, 748, Image.SCALE_FAST)))
     label.repaint()

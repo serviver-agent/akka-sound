@@ -52,8 +52,8 @@ class AudioSpectrumWorker(
 
       hamming2048inPlace(joinedSamples)
       val complex = fft.transform(joinedSamples, TransformType.FORWARD)
-      val realHalf: Array[Double] = complex.take(2048).map(_.getReal)
-      publish(realHalf)
+      val absHalf: Array[Double] = complex.take(2048).map(_.abs())
+      publish(absHalf)
     }
   }
 
