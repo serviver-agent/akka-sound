@@ -7,6 +7,7 @@ object Dependencies {
   lazy val scalaTest = "org.scalatest" %% "scalatest" % "3.2.10" % Test
   lazy val akkaActorTyped =
     "com.typesafe.akka" %% "akka-actor-typed" % AkkaActor
+  lazy val commonsMath = "org.apache.commons" % "commons-math3" % "3.6.1"
 
   val logback = "ch.qos.logback" % "logback-classic" % "1.2.11"
 }

@@ -11,9 +11,11 @@ lazy val commonSettings = Seq(
 
 lazy val root = (project in file("."))
   .settings(
-    name := "akka-sound",
+    name := "sound",
     commonSettings,
     libraryDependencies += akkaActorTyped,
     libraryDependencies += scalaTest,
-    libraryDependencies += logback % Runtime
+    libraryDependencies += commonsMath,
+    libraryDependencies += logback % Runtime,
+    assembly / mainClass := Some("com.serviveragent.Main")
   )
