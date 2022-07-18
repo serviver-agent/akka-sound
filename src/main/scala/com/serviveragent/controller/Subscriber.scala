@@ -7,9 +7,11 @@ class Subscriber[A](init: A*)(name: String, onReceive: A => Unit) extends Thread
 
   private val queue = new ConcurrentLinkedQueue[A](init.asJava)
 
+  private var isRunning = false
+
   private[controller] def putAndNotify(value: A): Unit = {
     queue.add(value)
-    synchronized(notifyAll())
+    interrupt()
   }
 
   private def blocking(): A = synchronized {
@@ -20,15 +22,20 @@ class Subscriber[A](init: A*)(name: String, onReceive: A => Unit) extends Thread
   }
 
   override def run(): Unit = {
-    try {
-      while (true) {
+    isRunning = true
+
+    while (isRunning) {
+      try {
         onReceive(blocking())
+      } catch {
+        case _: InterruptedException =>
       }
-    } catch {
-      case _: InterruptedException =>
     }
   }
 
-  def shutdown(): Unit = interrupt()
+  def shutdown(): Unit = {
+    isRunning = false
+    interrupt()
+  }
 
 }
