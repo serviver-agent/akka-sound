@@ -4,7 +4,7 @@ import com.serviveragent.control.shutdown.{GracefulShutdown, GracefulShutdownDis
 import com.serviveragent.controller.{Controller, Subscriber}
 import org.slf4j.LoggerFactory
 
-import javax.sound.sampled.{AudioFormat, AudioSystem, SourceDataLine}
+import javax.sound.sampled.{AudioFormat, AudioSystem, SourceDataLine, TargetDataLine}
 import scala.concurrent.duration.*
 
 class AudioMain(
@@ -17,8 +17,10 @@ class AudioMain(
   private val fs = 44100
 
   private val audioFormat = new AudioFormat(fs, 24, 1, true, true)
-  private val sourceDataLine: SourceDataLine =
-    AudioSystem.getSourceDataLine(audioFormat)
+
+  private val targetDataLine: TargetDataLine = AudioSystem.getTargetDataLine(audioFormat)
+
+  private val sourceDataLine: SourceDataLine = AudioSystem.getSourceDataLine(audioFormat)
 
   val oscillator: GainSineOscillator = new GainSineOscillator(
     TriangleOscillator(LineOscillator(440), 1.0, fs),
@@ -32,22 +34,32 @@ class AudioMain(
 
   private val iterator: Iterator[Sample] = oscillator.iterator
 
-  private val dest: Array[Byte] = new Array(3 * 1024)
+  private val inDest: Array[Byte] = new Array(3 * 1024)
+  private val outDest: Array[Byte] = new Array(3 * 1024)
 
   private var isRunning = false
 
   private val thread = new Thread {
     override def run(): Unit = {
+      targetDataLine.open()
       sourceDataLine.open()
+      targetDataLine.start()
       sourceDataLine.start()
       while (isRunning) {
-        val samples: Array[Sample] = iterator.take(1024).toArray
-        SampleConverter.toBytePCM24signBigEndian(samples, dest)
-        val bytes = dest.clone
+        targetDataLine.read(inDest, 0, inDest.length)
+        val inSamples: Array[Sample] = new Array(1024)
+        SampleConverter.fromBytePCM24signBigEndian(inDest, inSamples)
+
+        val samples = inSamples.map(_ * 0.5)
+//        val samples: Array[Sample] = iterator.take(1024).toArray
+        SampleConverter.toBytePCM24signBigEndian(samples, outDest)
+        val bytes = outDest.clone
         sourceDataLine.write(bytes, 0, bytes.length)
         controller.generatedSound.publish(samples)
       }
+      targetDataLine.stop()
       sourceDataLine.stop()
+      targetDataLine.close()
       sourceDataLine.close()
     }
   }

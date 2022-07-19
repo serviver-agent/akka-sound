@@ -1,5 +1,7 @@
 package com.serviveragent.soundtest
 
+import java.nio.ByteBuffer
+
 object SampleConverter {
 
   // Double (-1.0 ~ 1.0) -> PCM 24bit signed big-endian
@@ -26,6 +28,23 @@ object SampleConverter {
         dest(offset) = (x >>> 8).asInstanceOf[Byte]; offset += 1
         dest(offset) = x.asInstanceOf[Byte]; offset += 1
       }
+    }
+  }
+
+  def fromBytePCM24signBigEndian(
+      bytes: Iterable[Byte],
+      dest: Array[Sample]
+  ): Unit = {
+    val buffer: ByteBuffer = ByteBuffer.allocate(4)
+    bytes.grouped(3).zipWithIndex.foreach { case (bs, i) =>
+      val Array(a, b, c) = bs.toArray
+      val msb: Byte = if ((a & 0x80) == 0x80) 0xff.asInstanceOf[Byte] else 0x00.asInstanceOf[Byte]
+      buffer.put(0, msb)
+      buffer.put(1, a)
+      buffer.put(2, b)
+      buffer.put(3, c)
+      val intValue = buffer.getInt(0)
+      dest(i) = intValue.toDouble / 0x800000
     }
   }
 
