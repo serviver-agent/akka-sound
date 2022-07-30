@@ -6,8 +6,8 @@ import scala.concurrent.duration.*
 object SoundProcessUnit {
 
   case class FreqState(freq: Double)
-  def sineGenerator(freq: Double): Generator[Double, FreqState] =
-    new Generator(
+  def sineGenerator(freq: Double): Processor[Unit, Double, FreqState] =
+    new Processor(
       name = "",
       initialState = FreqState(freq = freq),
       receive = { (_, _, state, message) =>
@@ -18,15 +18,15 @@ object SoundProcessUnit {
           case _ => state
         }
       },
-      process = { (env, t, state) =>
+      process = { (env, t, _, state) =>
         val freq = state.freq
         val out = Math.sin(2 * Math.PI * freq * t * env.fsInv)
         (out, state)
       }
     )
 
-  def triangleGenerator(freq: Double): Generator[Double, FreqState] =
-    new Generator(
+  def triangleGenerator(freq: Double): Processor[Unit, Double, FreqState] =
+    new Processor(
       name = "triangle-gen",
       initialState = FreqState(freq = freq),
       receive = { (_, _, state, message) =>
@@ -37,7 +37,7 @@ object SoundProcessUnit {
           case _ => state
         }
       },
-      process = { (env, t, state) =>
+      process = { (env, t, _, state) =>
         val freq = state.freq
         val out = {
           val u = env.fs / freq
@@ -53,8 +53,8 @@ object SoundProcessUnit {
     )
 
   case class LineState(getAmpFn: Long => Double)
-  def lineGenerator(initial: Double): Generator[Double, LineState] =
-    new Generator(
+  def lineGenerator(initial: Double): Processor[Unit, Double, LineState] =
+    new Processor(
       name = "line-gen",
       initialState = LineState((_: Long) => initial),
       receive = { (env, t, state, message) =>
@@ -78,7 +78,7 @@ object SoundProcessUnit {
           case _ => state
         }
       },
-      process = { (_, t, state) =>
+      process = { (_, t, _, state) =>
         (state.getAmpFn(t), state)
       }
     )
@@ -106,14 +106,14 @@ object SoundProcessUnit {
   val gen1 = triangleGenerator(440.0)
   val gen2 = lineGenerator(0.5)
 
-  val gainControllableTriangleGenerator: Generator[Sample, (FreqState, LineState)] =
+  val gainControllableTriangleGenerator: Processor[Unit, Sample, (FreqState, LineState)] =
     mul(gen1, gen2)
 
   def mul[S1, S2](
-      gen1: Generator[Sample, S1],
-      gen2: Generator[Sample, S2]
-  ): Generator[Sample, (S1, S2)] =
-    new Generator(
+      gen1: Processor[Unit, Sample, S1],
+      gen2: Processor[Unit, Sample, S2]
+  ): Processor[Unit, Sample, (S1, S2)] =
+    new Processor(
       name = "",
       initialState = (gen1.initialState, gen2.initialState),
       receive = { case (env, t, (s1, s2), mes) =>
@@ -121,22 +121,22 @@ object SoundProcessUnit {
         val rs2 = gen2.receive(env, t, s2, mes)
         (rs1, rs2)
       },
-      process = { case (env, t, (s1, s2)) =>
-        val (o1, os1) = gen1.process(env, t, s1)
-        val (o2, os2) = gen2.process(env, t, s2)
+      process = { case (env, t, _, (s1, s2)) =>
+        val (o1, os1) = gen1.process(env, t, (), s1)
+        val (o2, os2) = gen2.process(env, t, (), s2)
         (o1 * o2, (os1, os2))
       }
     )
 
-  def generatorToProcessorDropInput[In, Out, State](
-      gen: Generator[Out, State]
+  def dropInput[In, Out, State](
+      gen: Processor[Unit, Out, State]
   ): Processor[In, Out, State] = {
     new Processor(
       name = gen.name,
       initialState = gen.initialState,
       receive = gen.receive,
       process = { (env, t, _, state) =>
-        gen.process(env, t, state)
+        gen.process(env, t, (), state)
       }
     )
   }

@@ -19,9 +19,7 @@ class AudioRunner(env: Environment) {
   private var t: Long = 0
 
   private val processor: Processor[Sample, Sample, (FreqState, LineState)] =
-    generatorToProcessorDropInput[Sample, Sample, (FreqState, LineState)](
-      gainControllableTriangleGenerator
-    )
+    dropInput(gainControllableTriangleGenerator)
 
   private var state = processor.initialState
 
