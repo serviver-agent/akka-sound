@@ -23,19 +23,12 @@ class AudioMain(
 
   private val sourceDataLine: SourceDataLine = AudioSystem.getSourceDataLine(audioFormat)
 
-//  val oscillator: GainSineOscillator = new GainSineOscillator(
-//    TriangleOscillator(LineOscillator(440), 1.0, fs),
-//    LineOscillator(0.25)
-//  )
-//
-//  val freqSubscriber: Subscriber[Double] =
-//    controller.freq.getSubscriber(oscillator.setFreq(_, 0.05.seconds))
-//  val ampSubscriber: Subscriber[Double] =
-//    controller.amp.getSubscriber(oscillator.setAmp(_, 0.05.seconds))
-
-//  private val iterator: Iterator[Sample] = oscillator.iterator
-
   val audioRunner: AudioRunner = new AudioRunner(env)
+
+  val freqSubscriber: Subscriber[Double] =
+    controller.freq.getSubscriber(freq => audioRunner.sendMessage("triangle-gen", List(freq)))
+  val ampSubscriber: Subscriber[Double] =
+    controller.amp.getSubscriber(amp => audioRunner.sendMessage("line-gen", List(amp, 0.05.seconds)))
 
   private val inDest: Array[Byte] = new Array(3 * env.blockSize)
   private val outDest: Array[Byte] = new Array(3 * env.blockSize)
@@ -69,14 +62,14 @@ class AudioMain(
     logger.debug("audio start")
     isRunning = true
     thread.start()
-//    freqSubscriber.start()
-//    ampSubscriber.start()
+    freqSubscriber.start()
+    ampSubscriber.start()
   }
 
   override def receiveShutdown(): Unit = {
     logger.debug("audio shutdown")
-//    freqSubscriber.shutdown()
-//    ampSubscriber.shutdown()
+    freqSubscriber.shutdown()
+    ampSubscriber.shutdown()
     isRunning = false
   }
 }

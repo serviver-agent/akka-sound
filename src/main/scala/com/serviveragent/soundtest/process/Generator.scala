@@ -2,14 +2,16 @@ package com.serviveragent.soundtest.process
 
 import com.serviveragent.soundtest.Sample
 
-class Generator[O, S, M](
-    val initialState: S,
-    val process: (Environment, Long, S, Option[M]) => (O, S)
-)
-object Generator {
-  def initialState[S](state: S): GeneratorBuilder[S] = new GeneratorBuilder(state)
-  class GeneratorBuilder[S](initialState: S) {
-    def process[O, M](proc: (Environment, Long, S, Option[M]) => (O, S)): Generator[O, S, M] =
-      new Generator(initialState, proc)
+class Generator[Out, State](
+    val name: String,
+    val initialState: State,
+    val receive: (Environment, Long, State, List[Any]) => State,
+    val process: (Environment, Long, State) => (Out, State)
+) {
+
+  def receiveMessages(env: Environment, t: Long, state: State, messages: List[(String, List[Any])]): State = {
+    val messagesForMe: List[List[Any]] = messages.filter(_._1 == name).map(_._2)
+    messagesForMe.foldLeft(state)((s, mes) => receive(env, t, s, mes))
   }
+
 }

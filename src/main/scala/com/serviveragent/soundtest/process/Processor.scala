@@ -2,15 +2,18 @@ package com.serviveragent.soundtest.process
 
 import com.serviveragent.soundtest.Sample
 
-class Processor[In, Out, State, Message](
+class Processor[In, Out, State](
+    val name: String,
     val initialState: State,
-    val process: (Environment, Long, In, State, Option[Message]) => (Out, State)
-)
+    val receive: (Environment, Long, State, List[Any]) => State,
+    val process: (Environment, Long, In, State) => (Out, State)
+) {
 
-object Processor {
-  def initialState[S](state: S): AudioUnitBuilder[S] = new AudioUnitBuilder(state)
-  class AudioUnitBuilder[S](initialState: S) {
-    def process[I, O, M](proc: (Environment, Long, I, S, Option[M]) => (O, S)): Processor[I, O, S, M] =
-      new Processor(initialState, proc)
+  def receiveMessages(env: Environment, t: Long, state: State, messages: List[(String, List[Any])]): State = {
+//    val messagesForMe: List[List[Any]] = messages.filter(_._1 == name).map(_._2)
+    val messagesForMe: List[List[Any]] = messages.map(_._2)
+
+    messagesForMe.foldLeft(state)((s, mes) => receive(env, t, s, mes))
   }
+
 }
