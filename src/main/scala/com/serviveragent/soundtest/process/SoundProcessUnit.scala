@@ -6,16 +6,14 @@ import scala.concurrent.duration.*
 object SoundProcessUnit {
 
   case class FreqState(freq: Double)
-  def sineGenerator(freq: Double): Processor[Unit, Double, FreqState] =
+  def sineGenerator(name: String, freq: Double): Processor[Unit, Double, FreqState] =
     new Processor(
-      name = "",
+      name = name,
       initialState = FreqState(freq = freq),
       receive = { (_, _, state, message) =>
         message match {
-          case (freq: Double) :: Nil =>
-            println(message)
-            FreqState(freq = freq)
-          case _ => state
+          case (freq: Double) :: Nil => FreqState(freq = freq)
+          case _                     => state
         }
       },
       process = { (env, t, _, state) =>
@@ -25,19 +23,18 @@ object SoundProcessUnit {
       }
     )
 
-  def triangleGenerator(freq: Double): Processor[Unit, Double, FreqState] =
+  def triangleGenerator(name: String, freq: Double): Processor[Unit, Double, FreqState] =
     new Processor(
-      name = "triangle-gen",
+      name = name,
       initialState = FreqState(freq = freq),
       receive = { (_, _, state, message) =>
         message match {
-          case (freq: Double) :: Nil =>
-            println(message)
-            FreqState(freq = freq)
-          case _ => state
+          case (freq: Double) :: Nil => FreqState(freq = freq)
+          case _                     => state
         }
       },
       process = { (env, t, _, state) =>
+        // 計算狂ってない？
         val freq = state.freq
         val out = {
           val u = env.fs / freq
@@ -53,15 +50,13 @@ object SoundProcessUnit {
     )
 
   case class LineState(getAmpFn: Long => Double)
-  def lineGenerator(initial: Double): Processor[Unit, Double, LineState] =
+  def lineGenerator(name: String, initial: Double): Processor[Unit, Double, LineState] =
     new Processor(
-      name = "line-gen",
+      name = name,
       initialState = LineState((_: Long) => initial),
       receive = { (env, t, state, message) =>
         message match {
           case (gain: Double) :: (duration: FiniteDuration) :: Nil =>
-            println(message)
-
             val t0 = t
             val a0 = state.getAmpFn(t)
             val t1 = t0 + (duration.toMillis.toDouble / 1000 * env.fs)
@@ -82,63 +77,5 @@ object SoundProcessUnit {
         (state.getAmpFn(t), state)
       }
     )
-
-  val mulProcessor: Processor[(Double, Double), Double, Unit] =
-    new Processor(
-      name = "",
-      initialState = (),
-      receive = { case (_, _, _, _) => () },
-      process = { case (_, _, (in1, in2), _) =>
-        (in1 * in2, ())
-      }
-    )
-
-  val addProcessor: Processor[(Double, Double), Double, Unit] =
-    new Processor(
-      name = "",
-      initialState = (),
-      receive = { case (_, _, _, _) => () },
-      process = { case (_, _, (in1, in2), _) =>
-        (in1 + in2, ())
-      }
-    )
-
-  val gen1 = triangleGenerator(440.0)
-  val gen2 = lineGenerator(0.5)
-
-  val gainControllableTriangleGenerator: Processor[Unit, Sample, (FreqState, LineState)] =
-    mul(gen1, gen2)
-
-  def mul[S1, S2](
-      gen1: Processor[Unit, Sample, S1],
-      gen2: Processor[Unit, Sample, S2]
-  ): Processor[Unit, Sample, (S1, S2)] =
-    new Processor(
-      name = "",
-      initialState = (gen1.initialState, gen2.initialState),
-      receive = { case (env, t, (s1, s2), mes) =>
-        val rs1 = gen1.receive(env, t, s1, mes)
-        val rs2 = gen2.receive(env, t, s2, mes)
-        (rs1, rs2)
-      },
-      process = { case (env, t, _, (s1, s2)) =>
-        val (o1, os1) = gen1.process(env, t, (), s1)
-        val (o2, os2) = gen2.process(env, t, (), s2)
-        (o1 * o2, (os1, os2))
-      }
-    )
-
-  def dropInput[In, Out, State](
-      gen: Processor[Unit, Out, State]
-  ): Processor[In, Out, State] = {
-    new Processor(
-      name = gen.name,
-      initialState = gen.initialState,
-      receive = gen.receive,
-      process = { (env, t, _, state) =>
-        gen.process(env, t, (), state)
-      }
-    )
-  }
 
 }

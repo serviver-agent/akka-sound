@@ -1,7 +1,8 @@
 package com.serviveragent.soundtest.process
 
 import com.serviveragent.soundtest.{Sample, Stereo}
-import com.serviveragent.soundtest.process.SoundProcessUnit.*
+import com.serviveragent.soundtest.process.Graph.*
+import com.serviveragent.soundtest.process.SoundProcessUnit.{FreqState, LineState}
 
 import java.util.concurrent.ConcurrentLinkedQueue
 import scala.concurrent.duration.*
@@ -18,20 +19,16 @@ class AudioRunner(env: Environment) {
 
   private var t: Long = 0
 
-  private val processor: Processor[Sample, Sample, (FreqState, LineState)] =
-    dropInput(gainControllableTriangleGenerator)
-
-  private var state = processor.initialState
+  val graph = new Graph
 
   def run(in1: Array[Sample]): Array[Sample] = {
     val out1: Array[Sample] = new Array[Sample](env.blockSize)
 
     (0 until env.blockSize).foreach { i =>
       val messages = pollAll()
-      state = processor.receiveMessages(env, t, state, messages)
-      val (o1, s) = processor.process(env, t, in1(i), state)
-      out1(i) = o1
-      state = s
+      messages.foreach(println)
+//      state = processor.receiveMessages(env, t, state, messages) // FIXME
+      out1(i) = graph.process(env, t, in1(i))
       t += 1
     }
     out1

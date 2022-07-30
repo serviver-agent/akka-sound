@@ -9,6 +9,8 @@ class Processor[In, Out, State](
     val process: (Environment, Long, In, State) => (Out, State)
 ) {
 
+  type S = State
+
   def receiveMessages(env: Environment, t: Long, state: State, messages: List[(String, List[Any])]): State = {
 //    val messagesForMe: List[List[Any]] = messages.filter(_._1 == name).map(_._2)
     val messagesForMe: List[List[Any]] = messages.map(_._2)
