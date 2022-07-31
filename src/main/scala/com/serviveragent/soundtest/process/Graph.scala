@@ -15,8 +15,13 @@ class Graph(
     nodes.map(node => node -> edges.filter(edge => node eq edge.to).map(_.from)).toMap
 
   val valueMemo: mutable.Map[Node, Option[Sample]] = mutable.HashMap(nodes.map(n => (n, None)): _*)
-  val states: mutable.Map[Node, Any] =
-    mutable.HashMap(nodes.collect { case n: Node.ProcessorNode => n }.map(n => (n, n.processor.initialState)): _*)
+  val states: mutable.Map[Node, Any] = new mutable.HashMap()
+  initState()
+
+  private[process] def initState(): Unit = {
+    states.clear()
+    nodes.collect { case n: Node.ProcessorNode => n }.foreach(n => states(n) = n.processor.initialState)
+  }
 
   private def getState(node: Node.ProcessorNode): node.processor.S = {
     states(node).asInstanceOf[node.processor.S]
@@ -121,7 +126,7 @@ object Graph {
         .getOrElse(throw new Exception(s"edge: ${edge.name} の to: ${edge.to} に対応するNodeが見つかりません"))
       new Edge(edge.name, from, to)
     }
-    new Graph(nodes, resolvedEdges)
+    new Graph(Node.Dest +: Node.Source +: nodes, resolvedEdges)
   }
 
 }

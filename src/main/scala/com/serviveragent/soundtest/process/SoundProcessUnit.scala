@@ -39,10 +39,12 @@ object SoundProcessUnit {
         val out = {
           val u = env.fs / freq
           val tmod = t % u.toInt
-          if (tmod < u / 4 || 3 * u / 4 <= tmod) {
+          if (tmod < u / 4) {
             4 * tmod / u
+          } else if (u / 4 <= tmod && tmod <= 3 * u / 4) {
+            -4 * tmod / u + 2
           } else {
-            -1 * tmod / u + 2
+            -4 + (4 * tmod / u)
           }
         }
         (out, FreqState(freq))
