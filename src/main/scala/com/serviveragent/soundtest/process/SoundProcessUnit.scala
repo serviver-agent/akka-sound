@@ -16,10 +16,10 @@ object SoundProcessUnit {
           case _                                                  => state
         }
       },
-      process = { (env, t, _, state) =>
+      process = { (env, t, state, _) =>
         val freq = state.freq
         val out = Math.sin(2 * Math.PI * freq * t * env.fsInv)
-        (out, state)
+        (state, out)
       }
     )
 
@@ -33,7 +33,7 @@ object SoundProcessUnit {
           case _                                                  => state
         }
       },
-      process = { (env, t, _, state) =>
+      process = { (env, t, state, _) =>
         val freq = state.freq
         val out = {
           val u = env.fs / freq
@@ -46,7 +46,7 @@ object SoundProcessUnit {
             -4 + (4 * tmod / u)
           }
         }
-        (out, FreqState(freq))
+        (FreqState(freq), out)
       }
     )
 
@@ -77,8 +77,8 @@ object SoundProcessUnit {
           case _ => state
         }
       },
-      process = { (_, t, _, state) =>
-        (state.getAmpFn(t), state)
+      process = { (_, t, state, _) =>
+        (state, state.getAmpFn(t))
       }
     )
 
