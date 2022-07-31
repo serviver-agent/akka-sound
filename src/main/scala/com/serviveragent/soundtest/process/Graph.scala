@@ -20,19 +20,19 @@ class Graph {
   val mulFn: Seq[Sample] => Sample = _.product
   val addFn: Seq[Sample] => Sample = _.sum
 
-  val triNode = new Node.ProcessorNode(triGen)
-  val lineNode = new Node.ProcessorNode(lineGen)
-  val mulNode1 = new Node.SimpleFunctionNode(mulFn)
-  val mulNode2 = new Node.SimpleFunctionNode(mulFn)
-  val addNode = new Node.SimpleFunctionNode(addFn)
+  val triNode = new Node.ProcessorNode("TriangleGenerator", triGen)
+  val lineNode = new Node.ProcessorNode("LineGenerator", lineGen)
+  val mulNode1 = new Node.SimpleFunctionNode("mulFn1", mulFn)
+  val mulNode2 = new Node.SimpleFunctionNode("mulFn2", mulFn)
+  val addNode = new Node.SimpleFunctionNode("addFn", addFn)
 
-  val edge1 = new Edge(addNode, Node.Dest)
-  val edge2 = new Edge(mulNode1, addNode)
-  val edge3 = new Edge(triNode, mulNode1)
-  val edge4 = new Edge(lineNode, mulNode1)
-  val edge5 = new Edge(mulNode2, addNode)
-  val edge6 = new Edge(lineNode, mulNode2)
-  val edge7 = new Edge(Node.Source, mulNode2)
+  val edge1 = new Edge("edge1", addNode, Node.Dest)
+  val edge2 = new Edge("edge2", mulNode1, addNode)
+  val edge3 = new Edge("edge3", triNode, mulNode1)
+  val edge4 = new Edge("edge4", lineNode, mulNode1)
+  val edge5 = new Edge("edge5", mulNode2, addNode)
+  val edge6 = new Edge("edge6", lineNode, mulNode2)
+  val edge7 = new Edge("edge7", Node.Source, mulNode2)
 
   val edges: List[Edge] = List(edge1, edge2, edge3, edge4, edge5, edge6, edge7)
   val nodes: List[Node] = List(Node.Source, Node.Dest, triNode, lineNode, mulNode1, mulNode2, addNode)
@@ -77,17 +77,30 @@ class Graph {
     valueMemo.keys.foreach(k => valueMemo(k) = None)
     v
   }
+
+  def graphString: String = {
+    s"""graph TD
+       |${edges.map(e => s"    ${e.from.name} --> |${e.name}| ${e.to.name}\n").mkString}
+       |""".stripMargin
+  }
+
 }
 
 object Graph {
 
-  sealed trait Node
-  object Node {
-    class ProcessorNode(val processor: Processor[Unit, Sample, _]) extends Node
-    class SimpleFunctionNode(val fn: Seq[Sample] => Sample) extends Node
-    case object Source extends Node
-    case object Dest extends Node
+  sealed trait Node {
+    def name: String
   }
-  class Edge(val from: Node, val to: Node)
+  object Node {
+    class ProcessorNode(val name: String, val processor: Processor[Unit, Sample, _]) extends Node
+    class SimpleFunctionNode(val name: String, val fn: Seq[Sample] => Sample) extends Node
+    case object Source extends Node {
+      def name = "Source"
+    }
+    case object Dest extends Node {
+      def name = "Dest"
+    }
+  }
+  class Edge(val name: String, val from: Node, val to: Node)
 
 }
