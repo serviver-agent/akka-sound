@@ -50,7 +50,7 @@ class AudioSpectrumWorker(
       buffer.clear()
       arraysQueue.dequeue()
 
-      hamming2048inPlace(joinedSamples)
+      hamming2048.inPlace(joinedSamples)
       val complex = fft.transform(joinedSamples, TransformType.FORWARD)
       val absHalf: Array[Double] = complex.take(2048).map(_.abs())
       publish(absHalf)
@@ -61,10 +61,14 @@ class AudioSpectrumWorker(
 
 object AudioSpectrumWorker {
 
-  def hamming2048inPlace(arr: Array[Double]): Unit = {
-    (0 until 2048).foreach { t =>
-      arr(t) = arr(t) * (0.54 - (0.46 * Math.cos(2 * Math.PI * t / 2048)))
+  class Hamming(size: Int) {
+    private val window = (0 until size).map(t => 0.54 - (0.46 * Math.cos(2 * Math.PI * t / size)))
+    def inPlace(arr: Array[Double]): Unit = {
+      (0 until size).foreach { t =>
+        arr(t) = arr(t) * window(t)
+      }
     }
   }
+  val hamming2048 = new Hamming(2048)
 
 }
