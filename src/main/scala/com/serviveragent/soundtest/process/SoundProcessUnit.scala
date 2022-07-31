@@ -5,6 +5,9 @@ import scala.concurrent.duration.*
 
 object SoundProcessUnit {
 
+  val mulFn: Seq[Sample] => Sample = _.product
+  val addFn: Seq[Sample] => Sample = _.sum
+
   case class FreqState(freq: Double)
   def sineGenerator(name: String, freq: Double): Processor[Unit, Double, FreqState] =
     new Processor(

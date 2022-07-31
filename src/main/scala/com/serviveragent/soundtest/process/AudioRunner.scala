@@ -75,9 +75,18 @@ class AudioRunner(env: Environment, graph: Graph) {
       v
     }
 
-    val v = proc(Node.Dest)
+    var v = proc(Node.Dest)
 
     valueMemo.keys.foreach(k => valueMemo(k) = None)
+
+    if (v < -1.0) {
+      logger.warn(s"clipped!: at t: $t, signal value: $v")
+      v = -1.0
+    }
+    if (1.0 < v) {
+      logger.warn(s"clipped!: at t: $t, signal value: $v")
+      v = 1.0
+    }
     v
   }
 
