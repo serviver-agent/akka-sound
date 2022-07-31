@@ -12,8 +12,8 @@ object SoundProcessUnit {
       initialState = FreqState(freq = freq),
       receive = { (_, _, state, message) =>
         message match {
-          case (freq: Double) :: Nil => FreqState(freq = freq)
-          case _                     => state
+          case freqStr :: Nil if freqStr.toDoubleOption.isDefined => FreqState(freq = freqStr.toDouble)
+          case _                                                  => state
         }
       },
       process = { (env, t, _, state) =>
@@ -29,12 +29,11 @@ object SoundProcessUnit {
       initialState = FreqState(freq = freq),
       receive = { (_, _, state, message) =>
         message match {
-          case (freq: Double) :: Nil => FreqState(freq = freq)
-          case _                     => state
+          case freqStr :: Nil if freqStr.toDoubleOption.isDefined => FreqState(freq = freqStr.toDouble)
+          case _                                                  => state
         }
       },
       process = { (env, t, _, state) =>
-        // 計算狂ってない？
         val freq = state.freq
         val out = {
           val u = env.fs / freq
@@ -58,7 +57,10 @@ object SoundProcessUnit {
       initialState = LineState((_: Long) => initial),
       receive = { (env, t, state, message) =>
         message match {
-          case (gain: Double) :: (duration: FiniteDuration) :: Nil =>
+          case gainStr :: durationStr :: Nil
+              if gainStr.toDoubleOption.isDefined && durationStr.toDoubleOption.isDefined =>
+            val gain = gainStr.toDouble
+            val duration = durationStr.toDouble.seconds
             val t0 = t
             val a0 = state.getAmpFn(t)
             val t1 = t0 + (duration.toMillis.toDouble / 1000 * env.fs)

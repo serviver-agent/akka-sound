@@ -6,7 +6,7 @@ import com.serviveragent.soundtest.process.SoundProcessUnit.*
 
 import scala.collection.mutable
 
-class Graph(
+class Graph private (
     val nodes: Seq[Node],
     val edges: Seq[Edge]
 ) {
@@ -14,49 +14,8 @@ class Graph(
   val nodesMap: Map[Node, Seq[Node]] =
     nodes.map(node => node -> edges.filter(edge => node eq edge.to).map(_.from)).toMap
 
-  val valueMemo: mutable.Map[Node, Option[Sample]] = mutable.HashMap(nodes.map(n => (n, None)): _*)
-  val states: mutable.Map[Node, Any] = new mutable.HashMap()
-  initState()
-
-  private[process] def initState(): Unit = {
-    states.clear()
-    nodes.collect { case n: Node.ProcessorNode => n }.foreach(n => states(n) = n.processor.initialState)
-  }
-
-  private def getState(node: Node.ProcessorNode): node.processor.S = {
-    states(node).asInstanceOf[node.processor.S]
-  }
-  private def setState(node: Node.ProcessorNode, state: node.processor.S): Unit = {
-    states(node) = state
-  }
-
-  def process(env: Environment, t: Long, in: Sample): Sample = {
-    def run(node: Node): Sample = {
-      val sources = nodesMap(node)
-      val sourceValues = sources.map(run)
-      val v: Sample =
-        valueMemo(node) match {
-          case Some(value) => value
-          case None =>
-            node match {
-              case node: Node.ProcessorNode =>
-                val (o, s) = node.processor.process(env, t, (), getState(node))
-                setState(node, s)
-                o
-              case node: Node.SimpleFunctionNode => node.fn(sourceValues)
-              case Node.Source                   => in
-              case Node.Dest                     => sourceValues.sum
-            }
-        }
-      valueMemo(node) = Some(v)
-      v
-    }
-
-    val v = run(Node.Dest)
-
-    valueMemo.keys.foreach(k => valueMemo(k) = None)
-    v
-  }
+  private val nodeNameMap: Map[NodeName, Node] = nodes.map(node => (node.name, node)).toMap
+  def getNodeByName(name: String): Option[Node] = nodeNameMap.get(name)
 
   def graphString: String = {
     s"""graph TD
@@ -68,50 +27,48 @@ class Graph(
 
 object Graph {
 
-  private[process] val triGen = triangleGenerator("triangle-gen", 440.0)
-  private[process] val lineGen = lineGenerator("line-gen", 0.5)
-
-  private[process] val mulFn: Seq[Sample] => Sample = _.product
-  private[process] val addFn: Seq[Sample] => Sample = _.sum
+  type NodeName = String
 
   sealed trait Node {
-    def name: String
+    def name: NodeName
   }
   object Node {
-    class ProcessorNode(val name: String, val processor: Processor[Unit, Sample, _]) extends Node
-    class SimpleFunctionNode(val name: String, val fn: Seq[Sample] => Sample) extends Node
+    class ProcessorNode(val name: NodeName, val processor: Processor[Unit, Sample, _]) extends Node
+    class SimpleFunctionNode(val name: NodeName, val fn: Seq[Sample] => Sample) extends Node
     case object Source extends Node {
-      def name = "Source"
+      def name: NodeName = "Source"
     }
     case object Dest extends Node {
-      def name = "Dest"
+      def name: NodeName = "Dest"
     }
   }
   class Edge(val name: String, val from: Node, val to: Node)
 
-  case class EdgeByName(name: String, from: String, to: String)
-
-  def default: Graph = Graph.create(
-    Seq(
-      new Node.ProcessorNode("TriangleGenerator", triGen),
-      new Node.ProcessorNode("LineGenerator", lineGen),
-      new Node.SimpleFunctionNode("mulFn1", mulFn),
-      new Node.SimpleFunctionNode("mulFn2", mulFn),
-      new Node.SimpleFunctionNode("addFn", addFn)
-    ),
-    Seq(
-      EdgeByName("edge1", "addFn", "Node.Dest"),
-      EdgeByName("edge2", "mulFn1", "addFn"),
-      EdgeByName("edge3", "TriangleGenerator", "mulFn1"),
-      EdgeByName("edge4", "LineGenerator", "mulFn1"),
-      EdgeByName("edge5", "mulFn2", "addFn"),
-      EdgeByName("edge6", "LineGenerator", "mulFn2"),
-      EdgeByName("edge7", "Node.Source", "mulFn2")
-    )
-  )
+  case class EdgeByName(name: String, from: NodeName, to: NodeName)
 
   def create(nodes: Seq[Node], edges: Seq[EdgeByName]): Graph = {
-    val nodeMap: Map[String, Node] = nodes.map(n => (n.name, n)).toMap
+
+    // nodeやedgeのnameが一意であることを確認
+
+    val duplicatedNameNodes = nodes.groupBy(_.name).filter(_._2.length > 2).keys.toList
+    if (duplicatedNameNodes.nonEmpty) {
+      throw new Exception(s"Nodeのnameが重複しています: ${duplicatedNameNodes.mkString(", ")}")
+    }
+    val duplicatedNameEdges = edges.groupBy(_.name).filter(_._2.length > 2).keys.toList
+    if (duplicatedNameEdges.nonEmpty) {
+      throw new Exception(s"Edgeのnameが重複しています: ${duplicatedNameEdges.mkString(", ")}")
+    }
+
+    if (nodes.exists(_.name == "Node.Source")) {
+      throw new Exception("Nodeのname Node.Source は予約語で利用できません")
+    }
+    if (nodes.exists(_.name == "Node.Dest")) {
+      throw new Exception("Nodeのname Node.Dest は予約語で利用できません")
+    }
+
+    // --
+
+    val nodeMap: Map[NodeName, Node] = nodes.map(n => (n.name, n)).toMap
     def resolveNode(nodeName: String): Option[Node] = {
       nodeName match {
         case "Node.Source" => Some(Node.Source)
