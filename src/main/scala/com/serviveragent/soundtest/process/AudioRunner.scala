@@ -19,7 +19,7 @@ class AudioRunner(env: Environment) {
 
   private var t: Long = 0
 
-  val graph = new Graph
+  val graph = Graph.default
 
   def run(in1: Array[Sample]): Array[Sample] = {
     val out1: Array[Sample] = new Array[Sample](env.blockSize)

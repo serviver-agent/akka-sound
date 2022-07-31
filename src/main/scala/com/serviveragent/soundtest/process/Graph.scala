@@ -1,42 +1,17 @@
 package com.serviveragent.soundtest.process
 
 import com.serviveragent.soundtest.Sample
-import com.serviveragent.soundtest.process.Graph.{Edge, Node}
-import com.serviveragent.soundtest.process.SoundProcessUnit.{
-  FreqState,
-  LineState,
-  lineGenerator,
-  sineGenerator,
-  triangleGenerator
-}
+import com.serviveragent.soundtest.process.Graph.*
+import com.serviveragent.soundtest.process.SoundProcessUnit.*
 
 import scala.collection.mutable
 
-class Graph {
+class Graph(
+    val nodes: Seq[Node],
+    val edges: Seq[Edge]
+) {
 
-  val triGen = triangleGenerator("triangle-gen", 440.0)
-  val lineGen = lineGenerator("line-gen", 0.5)
-
-  val mulFn: Seq[Sample] => Sample = _.product
-  val addFn: Seq[Sample] => Sample = _.sum
-
-  val triNode = new Node.ProcessorNode("TriangleGenerator", triGen)
-  val lineNode = new Node.ProcessorNode("LineGenerator", lineGen)
-  val mulNode1 = new Node.SimpleFunctionNode("mulFn1", mulFn)
-  val mulNode2 = new Node.SimpleFunctionNode("mulFn2", mulFn)
-  val addNode = new Node.SimpleFunctionNode("addFn", addFn)
-
-  val edge1 = new Edge("edge1", addNode, Node.Dest)
-  val edge2 = new Edge("edge2", mulNode1, addNode)
-  val edge3 = new Edge("edge3", triNode, mulNode1)
-  val edge4 = new Edge("edge4", lineNode, mulNode1)
-  val edge5 = new Edge("edge5", mulNode2, addNode)
-  val edge6 = new Edge("edge6", lineNode, mulNode2)
-  val edge7 = new Edge("edge7", Node.Source, mulNode2)
-
-  val edges: List[Edge] = List(edge1, edge2, edge3, edge4, edge5, edge6, edge7)
-  val nodes: List[Node] = List(Node.Source, Node.Dest, triNode, lineNode, mulNode1, mulNode2, addNode)
-  val nodesMap: Map[Node, List[Node]] =
+  val nodesMap: Map[Node, Seq[Node]] =
     nodes.map(node => node -> edges.filter(edge => node eq edge.to).map(_.from)).toMap
 
   val valueMemo: mutable.Map[Node, Option[Sample]] = mutable.HashMap(nodes.map(n => (n, None)): _*)
@@ -88,6 +63,12 @@ class Graph {
 
 object Graph {
 
+  private[process] val triGen = triangleGenerator("triangle-gen", 440.0)
+  private[process] val lineGen = lineGenerator("line-gen", 0.5)
+
+  private[process] val mulFn: Seq[Sample] => Sample = _.product
+  private[process] val addFn: Seq[Sample] => Sample = _.sum
+
   sealed trait Node {
     def name: String
   }
@@ -102,5 +83,45 @@ object Graph {
     }
   }
   class Edge(val name: String, val from: Node, val to: Node)
+
+  case class EdgeByName(name: String, from: String, to: String)
+
+  def default: Graph = Graph.create(
+    Seq(
+      new Node.ProcessorNode("TriangleGenerator", triGen),
+      new Node.ProcessorNode("LineGenerator", lineGen),
+      new Node.SimpleFunctionNode("mulFn1", mulFn),
+      new Node.SimpleFunctionNode("mulFn2", mulFn),
+      new Node.SimpleFunctionNode("addFn", addFn)
+    ),
+    Seq(
+      EdgeByName("edge1", "addFn", "Node.Dest"),
+      EdgeByName("edge2", "mulFn1", "addFn"),
+      EdgeByName("edge3", "TriangleGenerator", "mulFn1"),
+      EdgeByName("edge4", "LineGenerator", "mulFn1"),
+      EdgeByName("edge5", "mulFn2", "addFn"),
+      EdgeByName("edge6", "LineGenerator", "mulFn2"),
+      EdgeByName("edge7", "Node.Source", "mulFn2")
+    )
+  )
+
+  def create(nodes: Seq[Node], edges: Seq[EdgeByName]): Graph = {
+    val nodeMap: Map[String, Node] = nodes.map(n => (n.name, n)).toMap
+    def resolveNode(nodeName: String): Option[Node] = {
+      nodeName match {
+        case "Node.Source" => Some(Node.Source)
+        case "Node.Dest"   => Some(Node.Dest)
+        case _             => nodeMap.get(nodeName)
+      }
+    }
+    val resolvedEdges: Seq[Edge] = edges.map { edge =>
+      val from = resolveNode(edge.from)
+        .getOrElse(throw new Exception(s"edge: ${edge.name} の from: ${edge.from} に対応するNodeが見つかりません"))
+      val to = resolveNode(edge.to)
+        .getOrElse(throw new Exception(s"edge: ${edge.name} の to: ${edge.to} に対応するNodeが見つかりません"))
+      new Edge(edge.name, from, to)
+    }
+    new Graph(nodes, resolvedEdges)
+  }
 
 }
