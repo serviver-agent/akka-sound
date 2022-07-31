@@ -7,7 +7,7 @@ class Processor[In, Out, State](
     val name: String,
     val initialState: State,
     val receive: (Environment, Long, State, Message) => State,
-    val process: (Environment, Long, In, State) => (Out, State)
+    val process: (Environment, Long, State, In) => (State, Out)
 ) {
 
   type S = State

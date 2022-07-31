@@ -63,7 +63,7 @@ class AudioRunner(env: Environment, graph: Graph) {
           case None =>
             node match {
               case node: Node.ProcessorNode =>
-                val (o, s) = node.processor.process(env, t, (), getState(node))
+                val (s, o) = node.processor.process(env, t, getState(node), ())
                 setState(node, s)
                 o
               case node: Node.SimpleFunctionNode => node.fn(sourceValues)
