@@ -19,7 +19,7 @@ class Graph private (
 
   def graphString: String = {
     s"""graph TD
-       |${edges.map(e => s"    ${e.from.name} --> |${e.name}| ${e.to.name}\n").mkString}
+       |${edges.map(e => s"    ${e.from.name} --> |${e.nameForDebug}| ${e.to.name}\n").mkString}
        |""".stripMargin
   }
 
@@ -36,13 +36,13 @@ object Graph {
     class ProcessorNode(val name: NodeName, val processor: Processor[Unit, Sample, _]) extends Node
     class SimpleFunctionNode(val name: NodeName, val fn: Seq[Sample] => Sample) extends Node
     case object Source extends Node {
-      def name: NodeName = "Source"
+      def name: NodeName = "Audio.Source"
     }
     case object Dest extends Node {
-      def name: NodeName = "Dest"
+      def name: NodeName = "Audio.Dest"
     }
   }
-  class Edge(val name: String, val from: Node, val to: Node)
+  class Edge(val nameForDebug: String, val from: Node, val to: Node)
 
   case class EdgeByName(name: String, from: NodeName, to: NodeName)
 
@@ -53,10 +53,6 @@ object Graph {
     val duplicatedNameNodes = nodes.groupBy(_.name).filter(_._2.length > 2).keys.toList
     if (duplicatedNameNodes.nonEmpty) {
       throw new Exception(s"Nodeのnameが重複しています: ${duplicatedNameNodes.mkString(", ")}")
-    }
-    val duplicatedNameEdges = edges.groupBy(_.name).filter(_._2.length > 2).keys.toList
-    if (duplicatedNameEdges.nonEmpty) {
-      throw new Exception(s"Edgeのnameが重複しています: ${duplicatedNameEdges.mkString(", ")}")
     }
 
     if (nodes.exists(_.name == "Node.Source")) {
@@ -71,9 +67,9 @@ object Graph {
     val nodeMap: Map[NodeName, Node] = nodes.map(n => (n.name, n)).toMap
     def resolveNode(nodeName: String): Option[Node] = {
       nodeName match {
-        case "Node.Source" => Some(Node.Source)
-        case "Node.Dest"   => Some(Node.Dest)
-        case _             => nodeMap.get(nodeName)
+        case "Audio.Source" => Some(Node.Source)
+        case "Audio.Dest"   => Some(Node.Dest)
+        case _              => nodeMap.get(nodeName)
       }
     }
     val resolvedEdges: Seq[Edge] = edges.map { edge =>
